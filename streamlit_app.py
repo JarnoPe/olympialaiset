@@ -14,31 +14,24 @@ TARGET_COUNTRIES = {
     "NOR": "Norja",
 }
 
+# Huom: OG2026/OG2024-tyyppiset polut eivät ole luotettavia kaikille kisoille.
+# Käytetään ensisijaisesti olympics.comin schedules-api -rajapintaa, joka tarjoaa medal_tally.json-päätepisteen.
 GAMES_SOURCES: dict[str, list[str]] = {
     "Milano-Cortina 2026 (talvi)": [
-        "https://olympics.com/OG2026/data/CIS_Medal_Tally.json",
-        "https://olympics.com/OG2026/data/CIS_medal_tally.json",
-        "https://olympics.com/OG2026/data/CIS_Medal_Tally_CountryRankings.json",
+        "https://sph-s-api.olympics.com/winter/schedules/api/ENG/medal_tally.json",
     ],
     "Pariisi 2024 (kesä)": [
-        "https://olympics.com/OG2024/data/CIS_Medal_Tally.json",
-        "https://olympics.com/OG2024/data/CIS_medal_tally.json",
-        "https://olympics.com/OG2024/data/CIS_Medal_Tally_CountryRankings.json",
+        "https://sph-s-api.olympics.com/summer/schedules/api/ENG/medal_tally.json",
     ],
     "Peking 2022 (talvi)": [
-        "https://olympics.com/OG2022/data/CIS_Medal_Tally.json",
-        "https://olympics.com/OG2022/data/CIS_medal_tally.json",
-    ],
-    "Tokio 2020 (kesä)": [
-        "https://olympics.com/OG2020/data/CIS_Medal_Tally.json",
-        "https://olympics.com/OG2020/data/CIS_medal_tally.json",
+        "https://sph-s-api.olympics.com/winter/schedules/api/ENG/medal_tally.json",
     ],
 }
 
 
 @st.cache_data(ttl=45, show_spinner=False)
 def fetch_medal_data(game_name: str) -> tuple[pd.DataFrame, str, pd.DataFrame]:
-    headers = {"User-Agent": "olympialaiset-medal-dashboard/1.2"}
+    headers = {"User-Agent": "olympialaiset-medal-dashboard/1.3"}
     source_results: list[dict[str, str | int]] = []
 
     for url in GAMES_SOURCES[game_name]:
@@ -56,7 +49,7 @@ def fetch_medal_data(game_name: str) -> tuple[pd.DataFrame, str, pd.DataFrame]:
                     "Lähde": url,
                     "Tila": "Tyhjä data",
                     "Rivejä": 0,
-                    "Virhe": "Mitalitietoja FIN/SWE/NOR ei löytynyt tästä muodosta",
+                    "Virhe": "FIN/SWE/NOR ei löytynyt payloadista",
                 }
             )
         except requests.RequestException as error:
@@ -65,9 +58,42 @@ def fetch_medal_data(game_name: str) -> tuple[pd.DataFrame, str, pd.DataFrame]:
             source_results.append({"Lähde": url, "Tila": "Virhe", "Rivejä": 0, "Virhe": f"JSON-virhe: {error}"})
 
     raise RuntimeError(
-        "Datan haku epäonnistui kaikista valitun olympiakisan lähteistä.\n\n"
-        + pd.DataFrame(source_results).to_string(index=False)
+        "Datan haku epäonnistui kaikista valitun olympiakisan lähteistä. "
+        "Avaa 'Lähteiden validointi' nähdäksesi tarkat virheet."
     )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def validate_sources(game_name: str) -> pd.DataFrame:
+    headers = {"User-Agent": "olympialaiset-medal-dashboard/1.3"}
+    checks: list[dict[str, str | int]] = []
+
+    for url in GAMES_SOURCES[game_name]:
+        try:
+            response = requests.get(url, headers=headers, timeout=12)
+            status = response.status_code
+            content_type = response.headers.get("content-type", "")
+            checks.append(
+                {
+                    "Lähde": url,
+                    "HTTP": status,
+                    "Sisältötyyppi": content_type,
+                    "Tila": "OK" if status < 400 else "Virhe",
+                    "Huomio": "",
+                }
+            )
+        except requests.RequestException as error:
+            checks.append(
+                {
+                    "Lähde": url,
+                    "HTTP": 0,
+                    "Sisältötyyppi": "",
+                    "Tila": "Virhe",
+                    "Huomio": str(error),
+                }
+            )
+
+    return pd.DataFrame(checks)
 
 
 def parse_medal_payload(payload: dict | list) -> pd.DataFrame:
@@ -135,7 +161,7 @@ def format_timestamp() -> str:
 
 
 st.title("🥇 Olympiamitalit reaaliajassa")
-st.caption("Suomen, Ruotsin ja Norjan mitalivertailu olympics.com-avoimista lähteistä.")
+st.caption("Suomen, Ruotsin ja Norjan mitalivertailu olympics.com-lähteistä.")
 
 selected_games = st.selectbox("Valitse olympiakisat", list(GAMES_SOURCES.keys()), index=0)
 
@@ -143,6 +169,9 @@ col_actions, col_updated = st.columns([1, 2])
 if col_actions.button("Päivitä nyt"):
     st.cache_data.clear()
 col_updated.caption(f"Sivu renderöity: {format_timestamp()}")
+
+with st.expander("Lähteiden validointi"):
+    st.dataframe(validate_sources(selected_games), use_container_width=True, hide_index=True)
 
 try:
     medals, source_url, source_log = fetch_medal_data(selected_games)
@@ -165,5 +194,5 @@ except Exception as error:  # noqa: BLE001
     st.error(str(error))
     st.info(
         "Jos datalähde ei avaudu, syynä on usein verkon/proxyn esto olympics.com-osoitteisiin. "
-        "Kokeile päivittää myöhemmin tai toisesta verkosta."
+        "Tarkista ensin 'Lähteiden validointi'."
     )
