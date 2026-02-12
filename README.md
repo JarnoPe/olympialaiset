@@ -1,19 +1,5 @@
-# 🎈 Blank app template
-
-A simple Streamlit app template for you to modify!
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
-
-### How to run it on your own machine
-
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+- Vertailu kolmelle maalle: Suomi, Ruotsi, Norja
+- Oletuksena käynnissä olevat Milano-Cortina 2026 (talvi)
+- Kisa-valinta: Milano-Cortina 2026, Pariisi 2024, Peking 2022, Tokio 2020
+- "Päivitä nyt" -painike ja välimuistitettu haku
+- Lähteiden hakuloki (onnistuminen/virheet)
