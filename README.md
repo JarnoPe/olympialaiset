@@ -1,19 +1,19 @@
-# 🎈 Blank app template
+# Olympiamitalien vertailu (FIN 🇫🇮 / SWE 🇸🇪 / NOR 🇳🇴)
 
-A simple Streamlit app template for you to modify!
+Tämä Streamlit-sovellus näyttää Suomen, Ruotsin ja Norjan olympiamitalit reaaliajassa olympics.comin avoimista rajapinnoista.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+## Ominaisuudet
 
-### How to run it on your own machine
+- Vertailu kolmelle maalle: Suomi, Ruotsi, Norja
+- Kisa-valinta: Milano-Cortina 2026 (talvi), Pariisi 2024 (kesä), Peking 2022 (talvi)
+- Käyttää olympics.com schedules-api `medal_tally.json` -lähteitä
+- "Päivitä nyt" -painike ja välimuistitettu haku
+- Lähteiden validointi (HTTP-tila + sisältötyyppi)
+- Lähteiden hakuloki (onnistuminen/virheet)
 
-1. Install the requirements
+## Käynnistys
 
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
